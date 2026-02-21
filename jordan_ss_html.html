@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Jordan Social Security & Investment Planner</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: Arial, sans-serif; background: #f3f4f6; padding: 16px; font-size: 13px; color: #1f2937; }
+  h1 { font-size: 20px; font-weight: bold; color: #1e40af; margin-bottom: 4px; }
+  h2 { font-size: 13px; font-weight: bold; color: #374151; margin-bottom: 8px; }
+  .card { background: #fff; border-radius: 12px; box-shadow: 0 1px 4px rgba(0,0,0,0.1); padding: 20px; margin-bottom: 16px; }
+  .subtitle { font-size: 11px; color: #6b7280; margin-bottom: 16px; }
+  .grid { display: grid; gap: 12px; }
+  .grid-4 { grid-template-columns: repeat(4, 1fr); }
+  .grid-2 { grid-template-columns: repeat(2, 1fr); }
+  @media(max-width:700px) { .grid-4,.grid-2 { grid-template-columns: repeat(2,1fr); } }
+  label { font-size: 11px; font-weight: 600; color: #4b5563; display: block; margin-bottom: 4px; }
+  input, select { border: 1px solid #d1d5db; border-radius: 6px; padding: 6px 8px; font-size: 12px; width: 100%; }
+  .info-bar { border-radius: 8px; padding: 10px; margin-top: 12px; font-size: 11px; display: grid; gap: 8px; }
+  .info-bar.blue { background: #eff6ff; color: #1e40af; grid-template-columns: repeat(3,1fr); }
+  .info-bar.amber { background: #fffbeb; border: 1px solid #fcd34d; color: #92400e; grid-template-columns: repeat(3,1fr); }
+  .summary-grid { display: grid; grid-template-columns: repeat(5,1fr); gap: 12px; margin-bottom: 16px; }
+  @media(max-width:700px) { .summary-grid { grid-template-columns: repeat(2,1fr); } }
+  .summary-card { background: #fff; border-radius: 12px; box-shadow: 0 1px 4px rgba(0,0,0,0.1); padding: 12px; text-align: center; }
+  .summary-card .val { font-size: 16px; font-weight: bold; color: #1d4ed8; }
+  .summary-card .lbl { font-size: 11px; color: #6b7280; }
+  table { width: 100%; border-collapse: collapse; font-size: 11px; }
+  th { padding: 7px 8px; text-align: left; white-space: nowrap; }
+  td { padding: 6px 8px; white-space: nowrap; }
+  .text-right { text-align: right; }
+  .th-blue { background: #1d4ed8; color: #fff; }
+  .th-green { background: #15803d; color: #fff; }
+  .tr-even { background: #f9fafb; }
+  .tr-odd { background: #fff; }
+  .tr-amber { background: #fffbeb; }
+  .tr-total { background: #dbeafe; font-weight: bold; }
+  .tag { padding: 1px 6px; border-radius: 4px; font-size: 10px; }
+  .tag-blue { background: #dbeafe; color: #1d4ed8; }
+  .tag-amber { background: #fef3c7; color: #92400e; }
+  .orange { color: #ea580c; }
+  .green { color: #16a34a; }
+  .blue { color: #2563eb; }
+  .purple { font-weight: bold; color: #7c3aed; }
+  .overflow { overflow-x: auto; }
+  .btn { background: #16a34a; color: #fff; font-weight: bold; padding: 12px 28px; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; }
+  .btn:hover { background: #15803d; }
+  .center { text-align: center; }
+  .note { font-size: 10px; color: #9ca3af; margin-top: 6px; }
+  .export-note { font-size: 11px; color: #16a34a; margin-top: 6px; }
+  strong { font-weight: 600; }
+</style>
+</head>
+<body>
+
+<div style="max-width:960px;margin:0 auto;">
+
+  <!-- Inputs -->
+  <div class="card">
+    <h1>🇯🇴 Jordan Social Security & Investment Planner</h1>
+    <p class="subtitle">Contributions end on your specified date — investment grows until retirement age, then withdrawals begin.</p>
+
+    <div class="grid grid-4">
+      <div><label>Start Year</label><input type="number" id="startYear" value="2000"></div>
+      <div><label>End Year (last contribution)</label><input type="number" id="endYear" value="2025"></div>
+      <div><label>Birth Year</label><input type="number" id="birthYear" value="1975"></div>
+      <div><label>Starting Annual Salary (JOD)</label><input type="number" id="startSalary" value="10000"></div>
+      <div><label>Annual Salary Growth (%)</label><input type="number" id="salaryGrowth" value="5" step="0.1"></div>
+      <div><label>Annual Investment Return (%)</label><input type="number" id="investReturn" value="6" step="0.1"></div>
+      <div><label>Gender</label>
+        <select id="gender">
+          <option value="M">Male (retires at 60)</option>
+          <option value="F">Female (retires at 55)</option>
+        </select>
+      </div>
+      <div><label>Worker Type</label>
+        <select id="workerType">
+          <option value="employee">Employee</option>
+          <option value="independent">Independent / Self-Employed</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="info-bar blue" id="rateBar"></div>
+    <div class="info-bar amber" id="timelineBar"></div>
+  </div>
+
+  <!-- Summary -->
+  <div class="summary-grid" id="summaryCards"></div>
+
+  <!-- Contribution Table -->
+  <div class="card">
+    <h2>📊 Year-by-Year Contributions & Investment Growth</h2>
+    <div class="overflow"><table id="contribTable"></table></div>
+  </div>
+
+  <!-- Retirement Table -->
+  <div class="card">
+    <h2 id="retTitle">🏖️ Retirement Income — 15 Years</h2>
+    <p class="subtitle" id="retSubtitle"></p>
+    <div class="overflow"><table id="retTable"></table></div>
+  </div>
+
+  <!-- Export -->
+  <div class="center" style="margin-bottom:24px;">
+    <button class="btn" onclick="exportCSVs()">⬇️ Download CSV Files (2 files)</button>
+    <p class="export-note" id="exportNote" style="display:none;">✅ Both files downloaded! Open in Excel or Google Sheets.</p>
+    <p class="note">Downloads two CSV files — open in Excel or Google Sheets.</p>
+  </div>
+
+  <p class="note center" style="margin-bottom:24px;">
+    Pension estimate is illustrative. Actual entitlement depends on contribution years & SSC formula. Consult Jordan Social Security Corporation for exact figures.
+  </p>
+
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const fmt = n => Math.round(n).toLocaleString("en-US");
+
+let _contribRows = [], _retRows = [], _p = {};
+
+function getParams() {
+  return {
+    startYear: +$("startYear").value,
+    endYear: +$("endYear").value,
+    birthYear: +$("birthYear").value,
+    startSalary: +$("startSalary").value,
+    salaryGrowth: +$("salaryGrowth").value,
+    investReturn: +$("investReturn").value,
+    gender: $("gender").value,
+    workerType: $("workerType").value,
+  };
+}
+
+function calcContrib(p) {
+  const retAge = p.gender === "M" ? 60 : 55;
+  const retYear = p.birthYear + retAge;
+  const contribEnd = Math.min(p.endYear, retYear);
+  const rows = [];
+  let salary = p.startSalary, bal = 0;
+  const empRate = p.workerType === "employee" ? 0.075 : 0.175;
+  const emplrRate = p.workerType === "employee" ? 0.1425 : 0;
+  const r = p.investReturn / 100;
+
+  for (let yr = p.startYear; yr <= retYear; yr++) {
+    const age = yr - p.birthYear;
+    if (yr > p.startYear) salary *= (1 + p.salaryGrowth / 100);
+    const contributing = yr <= contribEnd;
+    const empC = contributing ? salary * empRate : 0;
+    const emplrC = contributing ? salary * emplrRate : 0;
+    bal = contributing ? (bal + empC) * (1 + r) : bal * (1 + r);
+    rows.push({
+      yr, age, salary: contributing ? +salary.toFixed(2) : 0,
+      empC: +empC.toFixed(2), emplrC: +emplrC.toFixed(2),
+      totalSS: +(empC + emplrC).toFixed(2),
+      bal: +bal.toFixed(2),
+      phase: contributing ? "contribution" : "growth"
+    });
+  }
+  return { rows, retYear, retAge, balAtRet: rows[rows.length-1]?.bal || 0 };
+}
+
+function calcRetirement(lastSalary, bal, r, retYear) {
+  const annualPension = lastSalary * 0.75;
+  const monthlyPension = annualPension / 12;
+  const rate = r / 100;
+  const N = 15;
+  const annualDraw = rate === 0 ? bal / N : bal * rate / (1 - Math.pow(1 + rate, -N));
+  const rows = [];
+  let b = bal;
+  for (let y = 1; y <= N; y++) {
+    b = b * (1 + rate) - annualDraw;
+    rows.push({
+      y, calYear: retYear + y,
+      annualPension: +annualPension.toFixed(2),
+      monthlyPension: +monthlyPension.toFixed(2),
+      draw: +annualDraw.toFixed(2),
+      bal: +Math.max(b, 0).toFixed(2),
+      total: +(annualPension + annualDraw).toFixed(2),
+    });
+  }
+  return rows;
+}
+
+function render() {
+  const p = getParams(); _p = p;
+  const { rows, retYear, retAge, balAtRet } = calcContrib(p);
+  _contribRows = rows;
+
+  const contribRows = rows.filter(r => r.phase === "contribution");
+  const lastContrib = contribRows[contribRows.length - 1];
+  const gapYrs = Math.max(0, retYear - p.endYear);
+  const totEmp = contribRows.reduce((s,r) => s+r.empC, 0);
+  const totEmplr = contribRows.reduce((s,r) => s+r.emplrC, 0);
+  const totSS = contribRows.reduce((s,r) => s+r.totalSS, 0);
+
+  // Rate bar
+  $("rateBar").innerHTML = p.workerType === "employee"
+    ? `<div><strong>Employee pays:</strong> 7.5%</div><div><strong>Employer pays:</strong> 14.25%</div><div><strong>Total SSC:</strong> 21.75%</div>`
+    : `<div><strong>Self pays:</strong> 17.5%</div><div>No employer share</div><div><strong>Total SSC:</strong> 17.5%</div>`;
+
+  // Timeline bar
+  $("timelineBar").innerHTML = `
+    <div><strong>Contributing:</strong> ${p.startYear} → ${Math.min(p.endYear, retYear)} (${contribRows.length} yrs)</div>
+    <div><strong>Growth only:</strong> ${gapYrs > 0 ? `${Math.min(p.endYear,retYear)+1} → ${retYear} (${gapYrs} yrs)` : "None"}</div>
+    <div><strong>Retirement starts:</strong> ${retYear} (age ${retAge})</div>`;
+
+  // Summary cards
+  $("summaryCards").innerHTML = [
+    ["Contributing Years", contribRows.length],
+    ["Total Personal SS Paid", "JOD " + fmt(totEmp)],
+    ["Total SS incl. Employer", "JOD " + fmt(totSS)],
+    ["Investment at Retirement", "JOD " + fmt(balAtRet)],
+    ["Investment Depletes After", (() => {
+      if (balAtRet <= 0) return "N/A";
+      const rate = p.investReturn / 100;
+      const N = 15;
+      const annualDraw = rate === 0 ? balAtRet / N : balAtRet * rate / (1 - Math.pow(1 + rate, -N));
+      // Find year balance hits zero with this draw but no cap (extend beyond 15)
+      let b = balAtRet, yr = 0;
+      while (b > 0 && yr < 200) { b = b * (1 + rate) - annualDraw; yr++; }
+      return b > 0 ? "Never" : yr + " yrs";
+    })()],
+  ].map(([l,v]) => `<div class="summary-card"><div class="lbl">${l}</div><div class="val" style="${v==='Never'?'color:#16a34a':''}">${v}</div></div>`).join("");
+
+  // Contribution table
+  const isEmp = p.workerType === "employee";
+  let th = `<tr class="th-blue">
+    <th>Year</th><th>Age</th><th>Phase</th><th class="text-right">Annual Salary</th>
+    <th class="text-right">${isEmp ? "Emp. SS" : "Self SS"}</th>
+    ${isEmp ? '<th class="text-right">Employer SS</th>' : ""}
+    <th class="text-right">Total SS</th><th class="text-right">Invest. Balance</th></tr>`;
+  let tb = rows.map((r, i) => {
+    const cls = r.phase === "growth" ? "tr-amber" : (i%2===0 ? "tr-even" : "tr-odd");
+    const tag = r.phase === "contribution"
+      ? '<span class="tag tag-blue">Contributing</span>'
+      : '<span class="tag tag-amber">Growth Only</span>';
+    return `<tr class="${cls}">
+      <td>${r.yr}</td><td class="text-right">${r.age}</td><td>${tag}</td>
+      <td class="text-right">${r.salary > 0 ? fmt(r.salary) : "—"}</td>
+      <td class="text-right orange">${r.empC > 0 ? fmt(r.empC) : "—"}</td>
+      ${isEmp ? `<td class="text-right green">${r.emplrC > 0 ? fmt(r.emplrC) : "—"}</td>` : ""}
+      <td class="text-right">${r.totalSS > 0 ? fmt(r.totalSS) : "—"}</td>
+      <td class="text-right blue">${fmt(r.bal)}</td></tr>`;
+  }).join("");
+  let tfoot = `<tr class="tr-total">
+    <td colspan="${isEmp ? 4 : 3}">TOTALS (contribution phase)</td>
+    <td class="text-right orange">${fmt(totEmp)}</td>
+    ${isEmp ? `<td class="text-right green">${fmt(totEmplr)}</td>` : ""}
+    <td class="text-right">${fmt(totSS)}</td>
+    <td class="text-right blue">${fmt(balAtRet)}</td></tr>`;
+  $("contribTable").innerHTML = `<thead>${th}</thead><tbody>${tb}${tfoot}</tbody>`;
+
+  // Retirement
+  if (!lastContrib) return;
+  const retRowsData = calcRetirement(lastContrib.salary, balAtRet, p.investReturn, retYear);
+  _retRows = retRowsData;
+  $("retTitle").textContent = `🏖️ Retirement Income — 15 Years from ${retYear} (age ${retAge})`;
+  $("retSubtitle").textContent = `SSC pension = 75% of last salary (JOD ${fmt(lastContrib.salary)}/yr). Investment of JOD ${fmt(balAtRet)} drawn over 15 years at ${p.investReturn}% return.`;
+
+  let rth = `<tr class="th-green">
+    <th>Ret. Yr</th><th class="text-right">Calendar Year</th>
+    <th class="text-right">Annual SSC Pension</th><th class="text-right">Monthly Pension</th>
+    <th class="text-right">Annual Invest. Draw</th><th class="text-right">Invest. Balance</th>
+    <th class="text-right">Total Annual Income</th></tr>`;
+  let rtb = retRowsData.map((r, i) => `<tr class="${i%2===0?"tr-even":"tr-odd"}">
+    <td>${r.y}</td><td class="text-right">${r.calYear}</td>
+    <td class="text-right green">${fmt(r.annualPension)}</td>
+    <td class="text-right">${fmt(r.monthlyPension)}</td>
+    <td class="text-right blue">${fmt(r.draw)}</td>
+    <td class="text-right">${fmt(r.bal)}</td>
+    <td class="text-right purple">${fmt(r.total)}</td></tr>`).join("");
+  $("retTable").innerHTML = `<thead>${rth}</thead><tbody>${rtb}</tbody>`;
+}
+
+function toCSV(headers, rows) {
+  const esc = v => `"${String(v).replace(/"/g,'""')}"`;
+  return [headers.map(esc).join(","), ...rows.map(r => r.map(esc).join(","))].join("\n");
+}
+
+function downloadCSV(name, csv) {
+  const a = document.createElement("a");
+  a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
+  a.download = name; a.click();
+}
+
+function exportCSVs() {
+  const p = _p;
+  const isEmp = p.workerType === "employee";
+  const h1 = ["Year","Age","Phase","Annual Salary (JOD)", isEmp?"Employee SS (JOD)":"Self SS (JOD)", isEmp?"Employer SS (JOD)":"N/A","Total SS (JOD)","Investment Balance (JOD)"];
+  const d1 = _contribRows.map(r => [r.yr, r.age, r.phase==="contribution"?"Contributing":"Growth Only", r.salary, r.empC, r.emplrC, r.totalSS, r.bal]);
+  downloadCSV("Jordan_SS_Contribution_Model.csv", toCSV(h1, d1));
+  setTimeout(() => {
+    const h2 = ["Retirement Year","Calendar Year","Annual SSC Pension (JOD)","Monthly Pension (JOD)","Annual Invest Withdrawal (JOD)","Remaining Balance (JOD)","Total Annual Income (JOD)"];
+    const d2 = _retRows.map(r => [r.y, r.calYear, r.annualPension, r.monthlyPension, r.draw, r.bal, r.total]);
+    downloadCSV("Jordan_SS_Retirement_Model.csv", toCSV(h2, d2));
+    $("exportNote").style.display = "block";
+    setTimeout(() => $("exportNote").style.display = "none", 4000);
+  }, 400);
+}
+
+// Listen to all input changes
+document.querySelectorAll("input,select").forEach(el => el.addEventListener("input", render));
+render();
+</script>
+</body>
+</html>
